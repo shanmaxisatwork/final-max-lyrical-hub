@@ -20,3 +20,4 @@ __pycache__/
 # Laptop secrets - NEVER commit
 laptop_config.json
 yt_cookies.txt
+"*.exe" 
