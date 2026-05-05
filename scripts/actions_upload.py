@@ -141,20 +141,36 @@ def delete_release_asset(asset_url):
 # ─── SEO GENERATION ───────────────────────────────────────────────────────────
 def generate_seo(title, description, tags, channel_name):
     tags_str = ", ".join(tags[:20]) if tags else "music, lyrics"
-    prompt = f"""You are a YouTube SEO expert. Generate metadata for Max Lyrical Hub channel.
+    prompt = f"""You are a professional YouTube SEO expert. Generate complete metadata for Max Lyrical Hub channel reupload.
 
-ORIGINAL VIDEO:
+ORIGINAL VIDEO DETAILS:
 - Title: {title}
-- Channel: {channel_name}
-- Tags: {tags_str}
-- Description: {description[:300]}
+- Original Channel: {channel_name}
+- Original Tags: {tags_str}
+- Original Description: {description[:500]}
 
-Generate:
-1. TITLE: SEO-optimized (max 100 chars), keep song/artist name
-2. DESCRIPTION: Opening hook, credit to {channel_name}, search terms section with 15 keywords, 25 hashtags, subscribe line
-3. TAGS: 35 comma-separated YouTube tags
+INSTRUCTIONS — Generate ALL of the following:
 
-Respond ONLY in JSON (no markdown): {{"title":"...","description":"...","tags":["..."]}}"""
+1. TITLE: SEO-optimized YouTube title (max 100 chars). Keep the exact song name and artist. Add keywords like "Lyrics", "Official", "HD" where relevant.
+
+2. DESCRIPTION: Write a complete YouTube description with these exact sections:
+   - Opening hook: 2-3 engaging sentences about the song/video
+   - Blank line
+   - "🎵 Song: [song name]"
+   - "👤 Artist: [artist name]"  
+   - "📺 Original Channel: {channel_name}"
+   - Blank line
+   - "🔍 Search Terms:" followed by 20 highly specific search phrases people use to find this exact song. Include variations like "[song] lyrics", "[artist] new song", "[song] slowed", "[song] full song", "[genre] songs 2025" etc. Each on new line starting with •
+   - Blank line
+   - "📌 Tags:" followed by minimum 25 relevant hashtags. Mix broad (#Music #Lyrics #NewSong) and specific (#[ArtistName] #[SongName] #[Genre]). Each hashtag on same line separated by space.
+   - Blank line
+   - "🔔 Subscribe to Max Lyrical Hub for daily music! Like & Share if you enjoyed!"
+   - "© All rights belong to their respective owners. No copyright infringement intended."
+
+3. TAGS: Generate 40 YouTube tags (no # symbol). Mix of: song name, artist name, genre, mood, language, year, similar artists.
+
+Respond ONLY in this exact JSON format with no markdown backticks:
+{{"title":"...","description":"...","tags":["tag1","tag2",...]}}"""
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -184,11 +200,49 @@ Respond ONLY in JSON (no markdown): {{"title":"...","description":"...","tags":[
             print(f"  {model} failed: {e}")
             continue
 
-    return {
-        "title": title[:90] + " | Max Lyrical Hub",
-        "description": f"Music\nOriginal: {channel_name}\n#MaxLyricalHub #Music #Lyrics",
-        "tags": (tags[:20] if tags else []) + ["Max Lyrical Hub","music","lyrics"],
-    }
+    # Fallback SEO when AI fails — still generates decent description
+    song_name   = title.split("-")[0].strip() if "-" in title else title
+    artist_name = title.split("-")[1].strip() if "-" in title else channel_name
+    base_tags   = tags[:15] if tags else []
+
+    fallback_desc = f"""🎵 {title}
+
+🎵 Song: {song_name}
+👤 Artist: {artist_name}
+📺 Original Channel: {channel_name}
+
+🔍 Search Terms:
+• {song_name} lyrics
+• {song_name} official
+• {artist_name} songs
+• {artist_name} new song 2025
+• {song_name} full song
+• {song_name} audio
+• {song_name} HD
+• {title} lyrics video
+• {channel_name} latest
+• {song_name} slowed reverb
+• best music 2025
+• new songs 2025
+• top songs this week
+• trending music
+• lyrics video 2025
+
+📌 Tags:
+#MaxLyricalHub #Music #Lyrics #NewSong #Trending #Song #MusicVideo #LyricsVideo #TopSongs #BestSongs #{song_name.replace(' ','')} #{artist_name.replace(' ','')} #NewMusic #ViralSong #MusicLovers #SongLyrics #HitSong #PopMusic #MusicChannel #DailyMusic #Subscribe #Like #Share #OfficialLyrics #FullSong
+
+🔔 Subscribe to Max Lyrical Hub for daily music! Like & Share if you enjoyed!
+© All rights belong to their respective owners. No copyright infringement intended."""
+
+    return {{
+        "title": f"{title[:85]} | Max Lyrical Hub",
+        "description": fallback_desc,
+        "tags": base_tags + [
+            "Max Lyrical Hub", "music", "lyrics", "new song", "trending",
+            song_name, artist_name, "lyrics video", "official", "2025",
+            "best songs", "top music", "hit song", "music video", "song"
+        ],
+    }}
 
 # ─── YOUTUBE UPLOAD ───────────────────────────────────────────────────────────
 def get_youtube_service():
