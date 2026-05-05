@@ -178,9 +178,11 @@ Respond ONLY in this exact JSON format with no markdown backticks:
         "HTTP-Referer": f"https://github.com/{GITHUB_REPO}",
     }
     models = [
-        "google/gemini-flash-1.5",
+        "meta-llama/llama-3.2-3b-instruct:free",
         "meta-llama/llama-3.1-8b-instruct:free",
+        "google/gemma-2-9b-it:free",
         "mistralai/mistral-7b-instruct:free",
+        "qwen/qwen-2-7b-instruct:free",
     ]
     for model in models:
         try:
@@ -203,7 +205,14 @@ Respond ONLY in this exact JSON format with no markdown backticks:
     # Fallback SEO when AI fails — still generates decent description
     song_name   = title.split("-")[0].strip() if "-" in title else title
     artist_name = title.split("-")[1].strip() if "-" in title else channel_name
-    base_tags   = tags[:15] if tags else []
+    # Ensure base_tags are all plain strings
+    base_tags = []
+    for t in (tags[:15] if tags else []):
+        if isinstance(t, str):
+            base_tags.append(t)
+        elif isinstance(t, dict):
+            val = list(t.values())[0] if t else ""
+            if val: base_tags.append(str(val))
 
     fallback_desc = f"""🎵 {title}
 
@@ -234,15 +243,19 @@ Respond ONLY in this exact JSON format with no markdown backticks:
 🔔 Subscribe to Max Lyrical Hub for daily music! Like & Share if you enjoyed!
 © All rights belong to their respective owners. No copyright infringement intended."""
 
-    return {{
+    final_tags = base_tags + [
+        "Max Lyrical Hub", "music", "lyrics", "new song", "trending",
+        str(song_name), str(artist_name), "lyrics video", "official", "2025",
+        "best songs", "top music", "hit song", "music video", "song"
+    ]
+    # Final safety check — ensure every tag is a plain string
+    final_tags = [str(t) for t in final_tags if t and isinstance(t, (str, int, float))]
+
+    return {
         "title": f"{title[:85]} | Max Lyrical Hub",
         "description": fallback_desc,
-        "tags": base_tags + [
-            "Max Lyrical Hub", "music", "lyrics", "new song", "trending",
-            song_name, artist_name, "lyrics video", "official", "2025",
-            "best songs", "top music", "hit song", "music video", "song"
-        ],
-    }}
+        "tags": final_tags,
+    }
 
 # ─── YOUTUBE UPLOAD ───────────────────────────────────────────────────────────
 def get_youtube_service():
