@@ -387,8 +387,18 @@ def main():
             seo       = generate_seo(title, v.get("description_raw",""), v.get("tags",[]), v.get("channel_name",""))
             seo_title = seo.get("title", title)
             seo_desc  = seo.get("description","")
-            seo_tags  = seo.get("tags",[])
+            raw_tags  = seo.get("tags",[])
+            # Fix: ensure all tags are plain strings not dicts
+            seo_tags  = []
+            for t in raw_tags:
+                if isinstance(t, str):
+                    seo_tags.append(t)
+                elif isinstance(t, dict):
+                    # AI sometimes returns {"tag": "value"} format
+                    val = list(t.values())[0] if t else ""
+                    if val: seo_tags.append(str(val))
             print(f"  Title: {seo_title}")
+            print(f"  Tags count: {len(seo_tags)}")
 
             # ── 3. Upload to YouTube with smart schedule time ──
             print("\n[3/3] Uploading to YouTube...")
