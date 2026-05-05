@@ -248,8 +248,15 @@ Respond ONLY in this exact JSON format with no markdown backticks:
         str(song_name), str(artist_name), "lyrics video", "official", "2025",
         "best songs", "top music", "hit song", "music video", "song"
     ]
-    # Final safety check — ensure every tag is a plain string
-    final_tags = [str(t) for t in final_tags if t and isinstance(t, (str, int, float))]
+    # Clean tags — remove special chars, ensure plain strings, max 30 chars each
+    def clean_tag(t):
+        import re
+        t = str(t).strip()
+        t = re.sub(r'[<>"\{\}\|\\^~\[\]`]', '', t)
+        return t[:30].strip()
+
+    final_tags = [clean_tag(t) for t in final_tags if t]
+    final_tags = [t for t in final_tags if t and len(t) >= 2][:40]
 
     return {
         "title": f"{title[:85]} | Max Lyrical Hub",
@@ -401,15 +408,25 @@ def main():
             seo_title = seo.get("title", title)
             seo_desc  = seo.get("description","")
             raw_tags  = seo.get("tags",[])
-            # Fix: ensure all tags are plain strings not dicts
+            # Fix: ensure all tags are plain strings, no special chars
+            import re
+            def clean_tag(t):
+                t = str(t).strip()
+                t = re.sub(r'[<>"\{\}\|\\^~\[\]`]', '', t)
+                return t[:30].strip()
             seo_tags  = []
             for t in raw_tags:
                 if isinstance(t, str):
-                    seo_tags.append(t)
+                    cleaned = clean_tag(t)
+                    if cleaned and len(cleaned) >= 2:
+                        seo_tags.append(cleaned)
                 elif isinstance(t, dict):
-                    # AI sometimes returns {"tag": "value"} format
                     val = list(t.values())[0] if t else ""
-                    if val: seo_tags.append(str(val))
+                    if val:
+                        cleaned = clean_tag(str(val))
+                        if cleaned and len(cleaned) >= 2:
+                            seo_tags.append(cleaned)
+            seo_tags = seo_tags[:40]
             print(f"  Title: {seo_title}")
             print(f"  Tags count: {len(seo_tags)}")
 
